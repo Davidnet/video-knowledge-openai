@@ -1,0 +1,74 @@
+# PIPELINE DEFINITION
+# Name: create-knowledge-db
+# Inputs:
+#    stride: int
+#    transcriptions: system.Artifact
+#    window: int
+components:
+  comp-create-knowledge-db:
+    executorLabel: exec-create-knowledge-db
+    inputDefinitions:
+      artifacts:
+        transcriptions:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        stride:
+          parameterType: NUMBER_INTEGER
+        window:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-create-knowledge-db:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - create_knowledge_db
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'pinecone-client==2.2.1'\
+          \ 'openai==0.27.4' 'tenacity==8.2.2' && \"$0\" \"$@\"\n"
+        - python3
+        - -m
+        - kfp.components.executor_main
+        image: us-central1-docker.pkg.dev/mlops-explorations/yt-whisper-images/create-knowledge-db:3.0
+pipelineInfo:
+  name: create-knowledge-db
+root:
+  dag:
+    tasks:
+      create-knowledge-db:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-create-knowledge-db
+        inputs:
+          artifacts:
+            transcriptions:
+              componentInputArtifact: transcriptions
+          parameters:
+            stride:
+              componentInputParameter: stride
+            window:
+              componentInputParameter: window
+        taskInfo:
+          name: create-knowledge-db
+  inputDefinitions:
+    artifacts:
+      transcriptions:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+    parameters:
+      stride:
+        parameterType: NUMBER_INTEGER
+      window:
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.13
